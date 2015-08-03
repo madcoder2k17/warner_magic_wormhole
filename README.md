@@ -137,6 +137,13 @@ although proper tests have not yet been implemented.
 It depends upon the SPAKE2, pynacl, requests, and argparse libraries. To run
 a relay server or use the async support, you must also install Twisted.
 
+## See Also
+
+Other projects in the same space: check them out!
+
+* http://www.pushbullet.com/
+* https://github.com/mafintosh/webcat
+
 
 #### footnotes
 
