@@ -482,38 +482,6 @@ class Common:
                                 % (h, type(h)))
         self._their_relay_hints = set(hints)
 
-    def _send_this(self):
-        assert self._transit_key
-        if self.is_sender:
-            return build_sender_handshake(self._transit_key)
-        else:
-            return build_receiver_handshake(self._transit_key)
-
-    def _expect_this(self):
-        assert self._transit_key
-        if self.is_sender:
-            return build_receiver_handshake(self._transit_key)
-        else:
-            return build_sender_handshake(self._transit_key)# + b"go\n"
-
-    def _sender_record_key(self):
-        assert self._transit_key
-        if self.is_sender:
-            return HKDF(self._transit_key, SecretBox.KEY_SIZE,
-                        CTXinfo=b"transit_record_sender_key")
-        else:
-            return HKDF(self._transit_key, SecretBox.KEY_SIZE,
-                        CTXinfo=b"transit_record_receiver_key")
-
-    def _receiver_record_key(self):
-        assert self._transit_key
-        if self.is_sender:
-            return HKDF(self._transit_key, SecretBox.KEY_SIZE,
-                        CTXinfo=b"transit_record_receiver_key")
-        else:
-            return HKDF(self._transit_key, SecretBox.KEY_SIZE,
-                        CTXinfo=b"transit_record_sender_key")
-
     def set_transit_key(self, key):
         assert isinstance(key, type(b"")), type(key)
         # We use pubsub to protect against the race where the sender knows
@@ -618,14 +586,11 @@ class Common:
         return endpoints.HostnameEndpoint(self._reactor, pieces[1],
                                           int(pieces[2]))
 
+class TransitSender(Common):
     def connection_ready(self, p):
         # inbound/outbound Connection protocols call this when they finish
         # negotiation. The first one wins and gets a "go". Any subsequent
         # ones lose and get a "nevermind" before being closed.
-
-        if not self.is_sender:
-            return "wait-for-decision"
-
         if self._winner:
             # we already have a winner, so this one loses
             return "nevermind"
@@ -633,11 +598,45 @@ class Common:
         self._winner = p
         return "go"
 
-class TransitSender(Common):
-    is_sender = True
+    def _send_this(self):
+        assert self._transit_key
+        return build_sender_handshake(self._transit_key)
+
+    def _expect_this(self):
+        assert self._transit_key
+        return build_receiver_handshake(self._transit_key)
+
+    def _sender_record_key(self):
+        assert self._transit_key
+        return HKDF(self._transit_key, SecretBox.KEY_SIZE,
+                    CTXinfo=b"transit_record_sender_key")
+
+    def _receiver_record_key(self):
+        assert self._transit_key
+        return HKDF(self._transit_key, SecretBox.KEY_SIZE,
+                    CTXinfo=b"transit_record_receiver_key")
 
 class TransitReceiver(Common):
-    is_sender = False
+    def connection_ready(self, p, description):
+        return "wait-for-decision"
+
+    def _send_this(self):
+        assert self._transit_key
+        return build_receiver_handshake(self._transit_key)
+
+    def _expect_this(self):
+        assert self._transit_key
+        return build_sender_handshake(self._transit_key)# + b"go\n"
+
+    def _sender_record_key(self):
+        assert self._transit_key
+        return HKDF(self._transit_key, SecretBox.KEY_SIZE,
+                    CTXinfo=b"transit_record_receiver_key")
+
+    def _receiver_record_key(self):
+        assert self._transit_key
+        return HKDF(self._transit_key, SecretBox.KEY_SIZE,
+                    CTXinfo=b"transit_record_sender_key")
 
 # the TransitSender/Receiver.connect() yields a Connection, on which you can
 # do send_record(), but what should the receive API be? set a callback for
@@ -647,13 +646,6 @@ class TransitReceiver(Common):
 # how should the Listener be managed? we want to shut it down when the
 # connect() Deferred is cancelled, as well as terminating any negotiations in
 # progress.
-#
-# the factory should return/manage a deferred, which fires iff an inbound
-# connection completes negotiation successfully, can be cancelled (which
-# stops the listener and drops all pending connections), but will never
-# timeout, and only errbacks if cancelled.
-
-# write unit test for _ThereCanBeOnlyOne
 
 # check start/finish time-gathering instrumentation
 
