@@ -1,5 +1,6 @@
 import re
 from binascii import hexlify
+from nacl.secret import SecretBox
 from .util.hkdf import HKDF
 
 class TransitError(Exception):
@@ -85,3 +86,41 @@ def parse_hint_tcp(hint):
         print("non-numeric port in TCP hint '%s'" % (hint,))
         return None
     return hint_host, hint_port
+
+class SenderMixin:
+    def _send_this(self):
+        assert self._transit_key
+        return build_sender_handshake(self._transit_key)
+
+    def _expect_this(self):
+        assert self._transit_key
+        return build_receiver_handshake(self._transit_key)
+
+    def _sender_record_key(self):
+        assert self._transit_key
+        return HKDF(self._transit_key, SecretBox.KEY_SIZE,
+                    CTXinfo=b"transit_record_sender_key")
+
+    def _receiver_record_key(self):
+        assert self._transit_key
+        return HKDF(self._transit_key, SecretBox.KEY_SIZE,
+                    CTXinfo=b"transit_record_receiver_key")
+
+class ReceiverMixin:
+    def _send_this(self):
+        assert self._transit_key
+        return build_receiver_handshake(self._transit_key)
+
+    def _expect_this(self):
+        assert self._transit_key
+        return build_sender_handshake(self._transit_key)# + b"go\n"
+
+    def _sender_record_key(self):
+        assert self._transit_key
+        return HKDF(self._transit_key, SecretBox.KEY_SIZE,
+                    CTXinfo=b"transit_record_receiver_key")
+
+    def _receiver_record_key(self):
+        assert self._transit_key
+        return HKDF(self._transit_key, SecretBox.KEY_SIZE,
+                    CTXinfo=b"transit_record_sender_key")

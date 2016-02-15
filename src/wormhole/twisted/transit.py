@@ -8,13 +8,11 @@ from twisted.internet import (reactor, interfaces, defer, protocol,
 from twisted.protocols import policies
 from nacl.secret import SecretBox
 from ..util import ipaddrs
-from ..util.hkdf import HKDF
 from ..errors import UsageError
 from ..transit_common import (BadHandshake,
                               BadNonce,
-                              build_receiver_handshake,
-                              build_sender_handshake,
-                              build_relay_handshake)
+                              build_relay_handshake,
+                              SenderMixin, ReceiverMixin)
 
 def debug(msg):
     if False:
@@ -586,7 +584,7 @@ class Common:
         return endpoints.HostnameEndpoint(self._reactor, pieces[1],
                                           int(pieces[2]))
 
-class TransitSender(Common):
+class TransitSender(Common, SenderMixin):
     def connection_ready(self, p):
         # inbound/outbound Connection protocols call this when they finish
         # negotiation. The first one wins and gets a "go". Any subsequent
@@ -598,45 +596,9 @@ class TransitSender(Common):
         self._winner = p
         return "go"
 
-    def _send_this(self):
-        assert self._transit_key
-        return build_sender_handshake(self._transit_key)
-
-    def _expect_this(self):
-        assert self._transit_key
-        return build_receiver_handshake(self._transit_key)
-
-    def _sender_record_key(self):
-        assert self._transit_key
-        return HKDF(self._transit_key, SecretBox.KEY_SIZE,
-                    CTXinfo=b"transit_record_sender_key")
-
-    def _receiver_record_key(self):
-        assert self._transit_key
-        return HKDF(self._transit_key, SecretBox.KEY_SIZE,
-                    CTXinfo=b"transit_record_receiver_key")
-
-class TransitReceiver(Common):
+class TransitReceiver(Common, ReceiverMixin):
     def connection_ready(self, p, description):
         return "wait-for-decision"
-
-    def _send_this(self):
-        assert self._transit_key
-        return build_receiver_handshake(self._transit_key)
-
-    def _expect_this(self):
-        assert self._transit_key
-        return build_sender_handshake(self._transit_key)# + b"go\n"
-
-    def _sender_record_key(self):
-        assert self._transit_key
-        return HKDF(self._transit_key, SecretBox.KEY_SIZE,
-                    CTXinfo=b"transit_record_receiver_key")
-
-    def _receiver_record_key(self):
-        assert self._transit_key
-        return HKDF(self._transit_key, SecretBox.KEY_SIZE,
-                    CTXinfo=b"transit_record_sender_key")
 
 # the TransitSender/Receiver.connect() yields a Connection, on which you can
 # do send_record(), but what should the receive API be? set a callback for
