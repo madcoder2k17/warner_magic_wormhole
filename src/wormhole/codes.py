@@ -1,5 +1,5 @@
 from __future__ import print_function
-import os, six
+import os, sys, six
 from .wordlist import (byte_to_even_word, byte_to_odd_word,
                        even_words_lowercase, odd_words_lowercase)
 
@@ -26,6 +26,11 @@ class CodeInputter:
         self.last_text = None # memoize for a speedup
         self.last_matches = None
 
+    def debug(self, *args, **kwargs):
+        if False:
+            print(*args, file=sys.stderr, **kwargs)
+            sys.stderr.flush()
+
     def get_current_channel_ids(self):
         if self._initial_channelids is not None:
             channelids = self._initial_channelids
@@ -39,23 +44,20 @@ class CodeInputter:
         except Exception as e:
             # completer exceptions are normally silently discarded, which
             # makes debugging challenging
-            print("completer exception: %s" % e)
+            print("completer exception: %s" % e, file=sys.stderr)
             raise e
 
     def completer(self, text, state):
-        #if state == 0:
-        #    print("", file=sys.stderr)
-        #print("completer: '%s' %d '%d'" % (text, state,
-        #                                   readline.get_completion_type()),
-        #      file=sys.stderr)
-        #sys.stderr.flush()
+        if state == 0:
+            self.debug("")
+        self.debug("completer: '%s' %d" % (text, state))
         pieces = text.split("-")
         last = pieces[-1].lower()
         if text == self.last_text and len(pieces) >= 2:
             # if len(pieces) == 1, skip the cache, so we can re-fetch the
             # channel_id list
             matches = self.last_matches
-            #print(" old matches", len(matches), file=sys.stderr)
+            self.debug(" old matches", len(matches))
         else:
             if len(pieces) <= 1:
                 channel_ids = self.get_current_channel_ids()
@@ -71,14 +73,13 @@ class CodeInputter:
                                   if word.startswith(last)])
             self.last_text = text
             self.last_matches = matches
-            #print(" new matches:", matches, file=sys.stderr)
+            self.debug(" new matches:", matches)
         if state >= len(matches):
             return None
         match = matches[state]
         if len(pieces) < 1+self.code_length:
             match += "-"
-        #print(" match: '%s'" % match, file=sys.stderr)
-        #sys.stderr.flush()
+        self.debug(" match: '%s'" % match)
         return match
 
 
