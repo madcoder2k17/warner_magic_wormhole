@@ -19,19 +19,20 @@ def extract_channel_id(code):
     return channel_id
 
 class CodeInputter:
-    def __init__(self, initial_channelids, get_channel_ids, code_length):
-        self._initial_channelids = initial_channelids
-        self._get_channel_ids = get_channel_ids
+    def __init__(self, initial_channelids, channel_getter, code_length):
+        self._most_recent_channelids = initial_channelids
+        self._channel_getter = channel_getter
         self.code_length = code_length
         self.last_text = None # memoize for a speedup
         self.last_matches = None
 
     def debug(self, *args, **kwargs):
-        if False:
+        if True:
             print(*args, file=sys.stderr, **kwargs)
             sys.stderr.flush()
 
-    def get_current_channel_ids(self):
+    def get_channel_ids(self):
+        
         if self._initial_channelids is not None:
             channelids = self._initial_channelids
             self._initial_channelids = None
@@ -60,7 +61,7 @@ class CodeInputter:
             self.debug(" old matches", len(matches))
         else:
             if len(pieces) <= 1:
-                channel_ids = self.get_current_channel_ids()
+                channel_ids = self.update_channel_ids()
                 matches = [str(channel_id) for channel_id in channel_ids
                            if str(channel_id).startswith(last)]
             else:

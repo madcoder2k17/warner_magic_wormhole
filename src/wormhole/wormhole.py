@@ -99,6 +99,7 @@ class _InputCode:
     @inlineCallbacks
     def _list(self):
         self._lister_d = defer.Deferred()
+        print("SENDING LIST", file=sys.stderr)
         self._send_command(u"list")
         nameplates = yield self._lister_d
         self._lister_d = None
@@ -130,6 +131,7 @@ class _InputCode:
         returnValue(code)
 
     def _response_handle_nameplates(self, msg):
+        #print(" RX LIST", file=sys.stderr)
         nameplates = msg["nameplates"]
         assert isinstance(nameplates, list), type(nameplates)
         nids = []
