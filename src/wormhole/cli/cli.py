@@ -39,6 +39,7 @@ def _compose(*decorators):
         return f
     return decorate
 
+CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 ALIASES = {
     "tx": "send",
@@ -53,7 +54,7 @@ class AliasedGroup(click.Group):
 
 
 # top-level command ("wormhole ...")
-@click.group(cls=AliasedGroup)
+@click.group(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
 @click.option(
     "--appid", default=None, metavar="APPID", help="appid to use")
 @click.option(
