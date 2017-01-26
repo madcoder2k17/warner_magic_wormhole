@@ -53,8 +53,18 @@ class Transit(ServerBase, unittest.TestCase):
 
     @defer.inlineCallbacks
     def test_web_request(self):
-        resp = yield client.getPage('http://127.0.0.1:{}/'.format(self.relayport).encode('ascii'))
-        self.assertEqual('Wormhole Relay'.encode('ascii'), resp.strip())
+        a = client.Agent(reactor)
+        url = 'http://127.0.0.1:{}/'.format(self.relayport).encode('ascii')
+        response = yield a.request(b"GET", url)
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            # Twisted can emit a spurious internal warning here ("Using
+            # readBody with a transport that does not have an abortConnection
+            # method") which seems to be
+            # https://twistedmatrix.com/trac/ticket/8227
+            page = yield client.readBody(response)
+        self.assertEqual('Wormhole Relay'.encode('ascii'), page.strip())
 
     @defer.inlineCallbacks
     def test_register(self):
