@@ -1,5 +1,5 @@
 from __future__ import print_function, unicode_literals
-import os, time, json
+import os, time
 from collections import defaultdict
 import click
 from humanize import naturalsize
@@ -119,108 +119,64 @@ def tail_usage(args):
         return 0
     return 0
 
-def count_channels(args):
+def list_apps(args):
     if not os.path.exists("relay.sqlite"):
         raise click.UsageError(
             "cannot find relay.sqlite, please run from the server directory"
         )
     db = get_db("relay.sqlite")
-    c_list = []
-    c_dict = {}
-    def add(key, value):
-        c_list.append((key, value))
-        c_dict[key] = value
-    OLD = time.time() - 10*60
     def q(query, values=()):
-        return list(db.execute(query, values).fetchone().values())[0]
-    add("apps", q("SELECT COUNT(DISTINCT(`app_id`)) FROM `nameplates`"))
-
-    add("total nameplates", q("SELECT COUNT() FROM `nameplates`"))
-    add("waiting nameplates", q("SELECT COUNT() FROM `nameplates`"
-                                " WHERE `second` is null"))
-    add("connected nameplates", q("SELECT COUNT() FROM `nameplates`"
-                                  " WHERE `second` is not null"))
-    add("stale nameplates", q("SELECT COUNT() FROM `nameplates`"
-                              " where `updated` < ?", (OLD,)))
-
-    add("total mailboxes", q("SELECT COUNT() FROM `mailboxes`"))
-    add("waiting mailboxes", q("SELECT COUNT() FROM `mailboxes`"
-                                " WHERE `second` is null"))
-    add("connected mailboxes", q("SELECT COUNT() FROM `mailboxes`"
-                                 " WHERE `second` is not null"))
-
-    stale_mailboxes = 0
-    for mbox_row in db.execute("SELECT * FROM `mailboxes`").fetchall():
-        newest = db.execute("SELECT `server_rx` FROM `messages`"
-                            " WHERE `app_id`=? AND `mailbox_id`=?"
-                            " ORDER BY `server_rx` DESC LIMIT 1",
-                            (mbox_row["app_id"], mbox_row["id"])).fetchone()
-        if newest and newest[0] < OLD:
-            stale_mailboxes += 1
-    add("stale mailboxes", stale_mailboxes)
-
-    add("messages", q("SELECT COUNT() FROM `messages`"))
-
-    if args.json:
-        print(json.dumps(c_dict))
+        return list(db.execute(query, values).fetchone().values())
+    apps = set()
+    apps.update(q("SELECT DISTINCT(`app_id`) FROM `nameplates`"))
+    apps.update(q("SELECT DISTINCT(`app_id`) FROM `mailboxes`"))
+    apps.update(q("SELECT DISTINCT(`app_id`) FROM `messages`"))
+    apps = sorted(apps)
+    if apps:
+        print("nameplates mailboxes messages  app_id")
+        print("---------- --------- --------  ------")
     else:
-        for (key, value) in c_list:
-            print(key, value)
-    return 0
+        print("no active apps")
+    for app_id in apps:
+        num_nameplates = q("SELECT COUNT() FROM `nameplates` WHERE `app_id`=?",
+                           (app_id,))[0]
+        num_mailboxes = q("SELECT COUNT() FROM `nameplates` WHERE `app_id`=?",
+                          (app_id,))[0]
+        num_messages = q("SELECT COUNT() FROM `nameplates` WHERE `app_id`=?",
+                         (app_id,))[0]
+        print("%10d %9d %8d  %s" % (num_nameplates, num_mailboxes,
+                                    num_messages, app_id))
 
-def count_events(args):
+def list_nameplates(args):
     if not os.path.exists("relay.sqlite"):
         raise click.UsageError(
             "cannot find relay.sqlite, please run from the server directory"
         )
     db = get_db("relay.sqlite")
-    c_list = []
-    c_dict = {}
-    def add(key, value):
-        c_list.append((key, value))
-        c_dict[key] = value
-    def q(query, values=()):
-        return list(db.execute(query, values).fetchone().values())[0]
 
-    add("apps", q("SELECT COUNT(DISTINCT(`app_id`)) FROM `nameplate_usage`"))
+    id_to_name = {}
+    for row in db.execute("SELECT * FROM `nameplates`").fetchall():
+        id_to_name[row["id"]] = (row["app_id"], row["name"])
 
-    add("total nameplates", q("SELECT COUNT() FROM `nameplate_usage`"))
-    add("happy nameplates", q("SELECT COUNT() FROM `nameplate_usage`"
-                              " WHERE `result`='happy'"))
-    add("lonely nameplates", q("SELECT COUNT() FROM `nameplate_usage`"
-                               " WHERE `result`='lonely'"))
-    add("pruney nameplates", q("SELECT COUNT() FROM `nameplate_usage`"
-                               " WHERE `result`='pruney'"))
-    add("crowded nameplates", q("SELECT COUNT() FROM `nameplate_usage`"
-                                " WHERE `result`='crowded'"))
+    nameplates = defaultdict(lambda: defaultdict(set)) # app->{name->{sides}}
+    for row in db.execute("SELECT * FROM `nameplate_sides`").fetchall():
+        app_id, name = id_to_name[row["nameplates_id"]]
+        nameplates[app_id][name].add( (row["claimed"], row["added"]) )
 
-    add("total mailboxes", q("SELECT COUNT() FROM `mailbox_usage`"))
-    add("happy mailboxes", q("SELECT COUNT() FROM `mailbox_usage`"
-                             " WHERE `result`='happy'"))
-    add("scary mailboxes", q("SELECT COUNT() FROM `mailbox_usage`"
-                             " WHERE `result`='scary'"))
-    add("lonely mailboxes", q("SELECT COUNT() FROM `mailbox_usage`"
-                              " WHERE `result`='lonely'"))
-    add("errory mailboxes", q("SELECT COUNT() FROM `mailbox_usage`"
-                              " WHERE `result`='errory'"))
-    add("pruney mailboxes", q("SELECT COUNT() FROM `mailbox_usage`"
-                              " WHERE `result`='pruney'"))
-    add("crowded mailboxes", q("SELECT COUNT() FROM `mailbox_usage`"
-                               " WHERE `result`='crowded'"))
-
-    add("total transit", q("SELECT COUNT() FROM `transit_usage`"))
-    add("happy transit", q("SELECT COUNT() FROM `transit_usage`"
-                           " WHERE `result`='happy'"))
-    add("lonely transit", q("SELECT COUNT() FROM `transit_usage`"
-                            " WHERE `result`='lonely'"))
-    add("errory transit", q("SELECT COUNT() FROM `transit_usage`"
-                            " WHERE `result`='errory'"))
-
-    add("transit bytes", q("SELECT SUM(`total_bytes`) FROM `transit_usage`"))
-
-    if args.json:
-        print(json.dumps(c_dict))
-    else:
-        for (key, value) in c_list:
-            print(key, value)
+    now = time.time()
+    for app_id in sorted(nameplates):
+        print("APP_ID:", app_id)
+        for name in sorted(nameplates[app_id]):
+            sides = nameplates[app_id][name]
+            age = int(now - min([added for (claimed, added) in sides]))
+            status = "weird"
+            if len(sides) == 1:
+                status = "lonely"
+            elif len(sides) == 2:
+                status = "open"
+                if False in [claimed for (claimed, added) in sides]:
+                    status = "half-closed"
+            elif len(sides) > 2:
+                status = "crowded"
+            print(" %s: %s (created %ss ago)" % (name, status, age))
     return 0

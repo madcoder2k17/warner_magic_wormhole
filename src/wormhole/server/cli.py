@@ -130,29 +130,20 @@ def tail_usage(cfg):
     tail_usage(cfg)
 
 
-@server.command(name='count-channels')
-@click.option(
-    "--json", is_flag=True,
-)
+@server.command(name='list-apps')
 @click.pass_obj
-def count_channels(cfg, json):
+def list_apps(cfg):
     """
-    Count active channels
+    List active apps
     """
-    from wormhole.server.cmd_usage import count_channels
-    cfg.json = json
-    count_channels(cfg)
+    from wormhole.server import cmd_usage
+    cmd_usage.list_apps(cfg)
 
-
-@server.command(name='count-events')
-@click.option(
-    "--json", is_flag=True,
-)
+@server.command(name='list-nameplates')
 @click.pass_obj
-def count_events(cfg, json):
+def list_nameplates(cfg):
     """
-    Count events
+    List active channels
     """
-    from wormhole.server.cmd_usage import count_events
-    cfg.json = json
-    count_events(cfg)
+    from wormhole.server import cmd_usage
+    cmd_usage.list_nameplates(cfg)
