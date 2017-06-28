@@ -43,16 +43,8 @@ def server(ctx): # this is the setuptools entrypoint for bin/wormhole-server
 
 LaunchArgs = _compose(
     click.option(
-        "--rendezvous", default="tcp:4000", metavar="tcp:PORT",
-        help="endpoint specification for the rendezvous port",
-    ),
-    click.option(
         "--transit", default="tcp:4001", metavar="tcp:PORT",
         help="endpoint specification for the transit-relay port",
-    ),
-    click.option(
-        "--advertise-version", metavar="VERSION",
-        help="version to recommend to clients",
     ),
     click.option(
         "--blur-usage", default=None, type=int,
@@ -62,14 +54,6 @@ LaunchArgs = _compose(
     click.option(
         "--no-daemon", "-n", is_flag=True,
         help="Run in the foreground",
-    ),
-    click.option(
-        "--signal-error", is_flag=True,
-        help="force all clients to fail with a message",
-    ),
-    click.option(
-        "--allow-list/--disallow-list", default=True,
-        help="always/never send list of allocated nameplates",
     ),
     click.option(
         "--relay-database-path", default="relay.sqlite", metavar="PATH",

@@ -14,14 +14,10 @@ class MyPlugin(object):
         # accept --reactor= selection
         from .server import RelayServer
         return RelayServer(
-            str(self.args.rendezvous),
             str(self.args.transit),
-            self.args.advertise_version,
             self.args.relay_database_path,
             self.args.blur_usage,
-            signal_error=self.args.signal_error,
             stats_file=self.args.stats_json_path,
-            allow_list=self.args.allow_list,
         )
 
 class MyTwistdConfig(twistd.ServerOptions):

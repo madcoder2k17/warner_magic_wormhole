@@ -22,17 +22,6 @@ class Server(unittest.TestCase):
     def setUp(self):
         self.runner = click.testing.CliRunner()
 
-    @mock.patch('wormhole.server.cmd_server.twistd')
-    def test_server_disallow_list(self, fake_twistd):
-        result = self.runner.invoke(server, ['start', '--no-daemon', '--disallow-list'])
-        self.assertEqual(0, result.exit_code)
-
-    def test_server_plugin(self):
-        cfg = FakeConfig()
-        plugin = MyPlugin(cfg)
-        relay = plugin.makeService(None)
-        self.assertEqual(False, relay._allow_list)
-
     @mock.patch("wormhole.server.cmd_server.start_server")
     def test_start_no_args(self, fake_start_server):
         result = self.runner.invoke(server, ['start'])

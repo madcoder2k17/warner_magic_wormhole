@@ -29,21 +29,14 @@ class ServerBase:
     def _setup_relay(self, error, advertise_version=None):
         self.sp = service.MultiService()
         self.sp.startService()
-        self.relayport = allocate_tcp_port()
         self.transitport = allocate_tcp_port()
         # need to talk to twisted team about only using unicode in
         # endpoints.serverFromString
-        s = RelayServer("tcp:%d:interface=127.0.0.1" % self.relayport,
-                        "tcp:%s:interface=127.0.0.1" % self.transitport,
-                        advertise_version=advertise_version,
-                        signal_error=error)
+        s = RelayServer("tcp:%s:interface=127.0.0.1" % self.transitport,
+                        )
         s.setServiceParent(self.sp)
         self._relay_server = s
-        self._rendezvous = s._rendezvous
         self._transit_server = s._transit
-        self.relayurl = u"ws://127.0.0.1:%d/v1" % self.relayport
-        self.rdv_ws_port = self.relayport
-        # ws://127.0.0.1:%d/wormhole-relay/ws
         self.transit = u"tcp:127.0.0.1:%d" % self.transitport
 
     def tearDown(self):
