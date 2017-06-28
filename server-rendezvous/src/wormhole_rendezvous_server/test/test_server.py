@@ -5,6 +5,7 @@ from twisted.trial import unittest
 from twisted.python import log
 from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.web import client
 from autobahn.twisted import websocket
 from .common import ServerBase
 from .. import server, rendezvous
@@ -620,6 +621,11 @@ class WebSocketAPI(_Util, ServerBase, unittest.TestCase):
         c = yield f.d
         self._clients.append(c)
         returnValue(c)
+
+    @inlineCallbacks
+    def test_web_request(self):
+        resp = yield client.getPage('http://127.0.0.1:{}/'.format(self.relayport).encode('ascii'))
+        self.assertEqual('Wormhole Relay'.encode('ascii'), resp.strip())
 
     def check_welcome(self, data):
         self.failUnlessIn("welcome", data)
