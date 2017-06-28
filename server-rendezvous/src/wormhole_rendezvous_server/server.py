@@ -10,7 +10,6 @@ from autobahn.twisted.resource import WebSocketResource
 from .database import get_db
 from .rendezvous import Rendezvous
 from .rendezvous_websocket import WebSocketRendezvousFactory
-from .transit_server import Transit
 
 SECONDS = 1.0
 MINUTE = 60*SECONDS
@@ -32,7 +31,7 @@ class PrivacyEnhancedSite(server.Site):
 
 class RelayServer(service.MultiService):
 
-    def __init__(self, rendezvous_web_port, transit_port,
+    def __init__(self, rendezvous_web_port,
                  advertise_version, db_url=":memory:", blur_usage=None,
                  signal_error=None, stats_file=None, allow_list=True):
         service.MultiService.__init__(self)
@@ -74,13 +73,6 @@ class RelayServer(service.MultiService):
         rendezvous_web_service = internet.StreamServerEndpointService(r, site)
         rendezvous_web_service.setServiceParent(self)
 
-        if transit_port:
-            transit = Transit(db, blur_usage)
-            transit.setServiceParent(self) # for the timer
-            t = endpoints.serverFromString(reactor, transit_port)
-            transit_service = internet.StreamServerEndpointService(t, transit)
-            transit_service.setServiceParent(self)
-
         self._stats_file = stats_file
         if self._stats_file and os.path.exists(self._stats_file):
             os.unlink(self._stats_file)
@@ -95,18 +87,14 @@ class RelayServer(service.MultiService):
         self._root = root
         self._rendezvous_web_service = rendezvous_web_service
         self._rendezvous_websocket = wsrf
-        self._transit = None
-        if transit_port:
-            self._transit = transit
-            self._transit_service = transit_service
 
     def startService(self):
         service.MultiService.startService(self)
         log.msg("websocket listening on /wormhole-relay/ws")
-        log.msg("Wormhole relay server (Rendezvous and Transit) running")
+        log.msg("Wormhole Rendezvous Server running")
         if self._blur_usage:
             log.msg("blurring access times to %d seconds" % self._blur_usage)
-            log.msg("not logging HTTP requests or Transit connections")
+            log.msg("not logging HTTP requests")
         else:
             log.msg("not blurring access times")
         if not self._allow_list:
@@ -129,7 +117,6 @@ class RelayServer(service.MultiService):
 
         start = time.time()
         data["rendezvous"] = self._rendezvous.get_stats()
-        data["transit"] = self._transit.get_stats()
         log.msg("get_stats took:", time.time() - start)
 
         with open(tmpfn, "wb") as f:

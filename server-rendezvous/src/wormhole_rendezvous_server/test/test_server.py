@@ -1281,7 +1281,7 @@ class Summary(unittest.TestCase):
 
 class DumpStats(unittest.TestCase):
     def test_nostats(self):
-        rs = server.RelayServer(str("tcp:0"), str("tcp:0"), None)
+        rs = server.RelayServer(str("tcp:0"), None)
         # with no ._stats_file, this should do nothing
         rs.dump_stats(1, 1)
 
@@ -1289,7 +1289,7 @@ class DumpStats(unittest.TestCase):
         basedir = self.mktemp()
         os.mkdir(basedir)
         fn = os.path.join(basedir, "stats.json")
-        rs = server.RelayServer(str("tcp:0"), str("tcp:0"), None,
+        rs = server.RelayServer(str("tcp:0"), None,
                                 stats_file=fn)
         now = 1234
         validity = 500
@@ -1300,7 +1300,6 @@ class DumpStats(unittest.TestCase):
         self.assertEqual(data["created"], now)
         self.assertEqual(data["valid_until"], now+validity)
         self.assertEqual(data["rendezvous"]["all_time"]["mailboxes_total"], 0)
-        self.assertEqual(data["transit"]["all_time"]["total"], 0)
 
 
 class Startup(unittest.TestCase):
@@ -1308,7 +1307,6 @@ class Startup(unittest.TestCase):
     @mock.patch('wormhole_rendezvous_server.server.log')
     def test_empty(self, fake_log):
         rs = server.RelayServer(
-            str("tcp:0"),
             str("tcp:0"),
             None,
             allow_list=False,
