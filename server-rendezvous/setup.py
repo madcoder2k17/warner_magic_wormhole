@@ -19,7 +19,7 @@ setup(name="magic-wormhole-rendezvous-server",
       entry_points={
           "console_scripts":
           [
-              "wormhole-server = wormhole_rendezvous_server.cli:server",
+              "wormhole-rendezvous-server = wormhole_rendezvous_server.cli:server",
           ]
       },
       install_requires=[
