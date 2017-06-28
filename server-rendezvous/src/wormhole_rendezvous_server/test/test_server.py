@@ -7,9 +7,9 @@ from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks, returnValue
 from autobahn.twisted import websocket
 from .common import ServerBase
-from ..server import server, rendezvous
-from ..server.rendezvous import Usage, SidedMessage
-from ..server.database import get_db
+from .. import server, rendezvous
+from ..rendezvous import Usage, SidedMessage
+from ..database import get_db
 
 class _Util:
     def _nameplate(self, app, name):
@@ -1305,7 +1305,7 @@ class DumpStats(unittest.TestCase):
 
 class Startup(unittest.TestCase):
 
-    @mock.patch('wormhole.server.server.log')
+    @mock.patch('wormhole_rendezvous_server.server.log')
     def test_empty(self, fake_log):
         rs = server.RelayServer(
             str("tcp:0"),
@@ -1317,7 +1317,7 @@ class Startup(unittest.TestCase):
         try:
             logs = '\n'.join([call[1][0] for call in fake_log.mock_calls])
             self.assertTrue(
-                'listing of allocated nameplates disallowed' in logs
+                'listing of allocated nameplates disallowed' in logs,
             )
         finally:
             rs.stopService()

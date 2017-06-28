@@ -1,6 +1,27 @@
 from __future__ import print_function
+import os
+from sys import stdout, stderr
 import click
-from ..cli.cli import Config, _compose
+
+class Config(object):
+    """
+    Union of config options that we pass down to (sub) commands.
+    """
+    def __init__(self):
+        # This only holds attributes which are *not* set by CLI arguments.
+        # Everything else comes from Click decorators, so we can be sure
+        # we're exercising the defaults.
+        self.cwd = os.getcwd()
+        self.stdout = stdout
+        self.stderr = stderr
+        self.tor = False  # XXX?
+
+def _compose(*decorators):
+    def decorate(f):
+        for d in reversed(decorators):
+            f = d(f)
+        return f
+    return decorate
 
 # can put this back in to get this command as "wormhole server"
 # instead

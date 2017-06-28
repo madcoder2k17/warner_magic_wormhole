@@ -4,7 +4,7 @@ from twisted.internet import reactor
 from twisted.python import log
 from autobahn.twisted import websocket
 from .rendezvous import CrowdedError, ReclaimedError, SidedMessage
-from ..util import dict_to_bytes, bytes_to_dict
+from .util import dict_to_bytes, bytes_to_dict
 
 # The WebSocket allows the client to send "commands" to the server, and the
 # server to send "responses" to the client. Note that commands and responses

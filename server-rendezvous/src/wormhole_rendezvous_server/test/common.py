@@ -1,12 +1,26 @@
 # no unicode_literals untill twisted update
+import sys, socket
 from twisted.application import service
 from twisted.internet import defer, task, reactor
 from twisted.python import log
-from click.testing import CliRunner
-import mock
-from ..cli import cli
-from ..transit import allocate_tcp_port
-from ..server.server import RelayServer
+from twisted.python.runtime import platformType
+from ..server import RelayServer
+
+def allocate_tcp_port():
+    """Return an (integer) available TCP port on localhost. This briefly
+    listens on the port in question, then closes it right away."""
+    # We want to bind() the socket but not listen(). Twisted (in
+    # tcp.Port.createInternetSocket) would do several other things:
+    # non-blocking, close-on-exec, and SO_REUSEADDR. We don't need
+    # non-blocking because we never listen on it, and we don't need
+    # close-on-exec because we close it right away. So just add SO_REUSEADDR.
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    if platformType == "posix" and sys.platform != "cygwin":
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind(("127.0.0.1", 0))
+    port = s.getsockname()[1]
+    s.close()
+    return port
 
 class ServerBase:
     def setUp(self):
@@ -71,18 +85,6 @@ class ServerBase:
             return d
         wait_d.addCallback(_later)
         return wait_d
-
-def config(*argv):
-    r = CliRunner()
-    with mock.patch("wormhole.cli.cli.go") as go:
-        res = r.invoke(cli.wormhole, argv, catch_exceptions=False)
-        if res.exit_code != 0:
-            print(res.exit_code)
-            print(res.output)
-            print(res)
-            assert 0
-        cfg = go.call_args[0][1]
-    return cfg
 
 @defer.inlineCallbacks
 def poll_until(predicate):

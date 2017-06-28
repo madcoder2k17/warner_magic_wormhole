@@ -2,8 +2,8 @@ from __future__ import print_function, unicode_literals
 import mock
 import click.testing
 from twisted.trial import unittest
-from wormhole.server.cmd_server import MyPlugin
-from wormhole.server.cli import server
+from ..cmd_server import MyPlugin
+from ..cli import server
 
 class FakeConfig(object):
     no_daemon = True

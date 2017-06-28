@@ -1,7 +1,7 @@
 from __future__ import print_function, unicode_literals
 import os
 from twisted.trial import unittest
-from ..server.database import get_db, TARGET_VERSION, dump_db
+from ..database import get_db, TARGET_VERSION, dump_db
 
 class DB(unittest.TestCase):
     def test_create_default(self):
